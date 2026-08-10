@@ -133,33 +133,51 @@ export const firebaseService = {
     if (!projectId) return null;
     const documentPath = `projects/${projectId}`;
     
-    try {
-      if (payload) {
-        // Upload (push) payload to Firestore
-        const encryptedData = await cryptoUtils.encrypt(JSON.stringify(payload), password);
+    if (payload) {
+      // Upload (push) payload to Firestore
+      let encryptedData: string;
+      try {
+        encryptedData = await cryptoUtils.encrypt(JSON.stringify(payload), password);
+      } catch (err) {
+        throw new Error('Lỗi mã hóa dữ liệu trước khi đẩy lên Cloud');
+      }
+
+      try {
         await setDoc(doc(db, 'projects', projectId), {
           payload: encryptedData,
           updatedAt: new Date().toISOString(),
           version: payload.version || '2.0'
         });
         return payload;
-      } else {
-        // Download (pull) from Firestore
+      } catch (error) {
+        console.error('Firebase Write Error:', error);
+        handleFirestoreError(error, OperationType.WRITE, documentPath);
+      }
+    } else {
+      // Download (pull) from Firestore
+      let docSnap;
+      try {
         const docRef = doc(db, 'projects', projectId);
-        const docSnap = await getDoc(docRef);
-        
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          if (data.payload) {
+        docSnap = await getDoc(docRef);
+      } catch (error) {
+        console.error('Firebase Read Error:', error);
+        handleFirestoreError(error, OperationType.GET, documentPath);
+      }
+      
+      if (docSnap && docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.payload) {
+          try {
             const decrypted = await cryptoUtils.decrypt(data.payload, password);
             return JSON.parse(decrypted) as CloudPayload;
+          } catch (decryptErr) {
+            throw new Error(
+              `Mật khẩu Master Key không khớp với dữ liệu mã hóa đã lưu trên Cloud (Dự án: ${projectId}).`
+            );
           }
         }
-        return null;
       }
-    } catch (error) {
-      console.error('Firebase Sync Error:', error);
-      handleFirestoreError(error, payload ? OperationType.WRITE : OperationType.GET, documentPath);
+      return null;
     }
   }
 };

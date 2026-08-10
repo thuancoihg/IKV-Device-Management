@@ -127,7 +127,21 @@ const App: React.FC = () => {
       }
     } catch (error) {
       setSyncStatus('error');
-      addToast(error instanceof Error ? error.message : "Cloud Sync failed", "error");
+      let msg = "Lỗi đồng bộ Đám mây (Cloud Sync failed)";
+      if (error instanceof Error) {
+        msg = error.message;
+        if (msg.startsWith('{') && msg.endsWith('}')) {
+          try {
+            const parsed = JSON.parse(msg);
+            if (parsed && parsed.error) {
+              msg = `Lỗi Firestore (${parsed.operationType}): ${parsed.error}`;
+            }
+          } catch {
+            // keep original msg
+          }
+        }
+      }
+      addToast(msg, "error");
     } finally {
       setIsSyncing(false);
     }
