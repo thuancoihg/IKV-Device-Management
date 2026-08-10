@@ -1,0 +1,5 @@
+{
+  "name": "IKV Device Master",
+  "description": "A professional device management system for tracking corporate assets like laptops and mobile phones, featuring Excel import/export, dashboard analytics, and AI-powered insights.",
+  "requestFramePermissions": []
+}

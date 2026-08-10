@@ -1,0 +1,35 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+       return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidProject(data) {
+      return data.keys().hasAll(['payload', 'updatedAt'])
+        && data.keys().size() <= 3
+        && data.payload is string 
+        && data.payload.size() <= 10485760
+        && data.updatedAt is string 
+        && data.updatedAt.size() <= 128
+        && (!data.keys().hasAny(['version']) || (data.version is string && data.version.size() <= 64));
+    }
+
+    // projects match block
+    match /projects/{projectId} {
+      allow get: if isValidId(projectId);
+      allow create, update: if isValidId(projectId) && isValidProject(request.resource.data);
+      allow delete: if false;
+    }
+  }
+}

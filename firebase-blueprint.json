@@ -1,0 +1,31 @@
+{
+  "entities": {
+    "Project": {
+      "title": "Project Data",
+      "description": "Encrypted payload for a device management project.",
+      "type": "object",
+      "properties": {
+        "payload": {
+          "type": "string",
+          "description": "AES-GCM encrypted string representing the CloudPayload."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when this project payload was last updated."
+        },
+        "version": {
+          "type": "string",
+          "description": "Version identifier of the payload."
+        }
+      },
+      "required": ["payload", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/projects/{projectId}": {
+      "schema": "Project",
+      "description": "Stores secure encrypted payload for each unique project identifier."
+    }
+  }
+}
